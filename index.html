@@ -358,31 +358,36 @@ function applyFilters(){
 
     if(!start || !end) return
 
-    for(let m=1;m<=12;m++){
+   for(let m=1;m<=12;m++){
 
-      const date = new Date(2025,m-1,1)
+  const monthStart = new Date(2025, m-1, 1)
+  const monthEnd = new Date(2025, m, 0) // ultimo giorno mese
 
-      if(date>=start && date<=end){
+  const isActive =
+    start <= monthEnd &&
+    end >= monthStart
 
-        if(months.length && !months.includes(m)) continue
-        if(groups.length && !groups.includes(gruppo)) continue
-        if(acquisitions.length && !acquisitions.includes(v.provider)) continue
+  if(!isActive) continue
 
-        const canone =
-        Number(String(v["Canone imponibile"]||0).replace(",", "."))
+  if(months.length && !months.includes(m)) continue
+  if(groups.length && !groups.includes(gruppo)) continue
+  if(acquisitions.length && !acquisitions.includes(v.provider)) continue
 
-        const ivato =
-        Number(String(v["Canone ivato"]||0).replace(",", "."))
+  const canone =
+  Number(String(v["Canone imponibile"]||0).replace(",", "."))
 
-        const ass =
-        Number(String(v["Canone assicurazione"]||0).replace(",", "."))
+  const ivato =
+  Number(String(v["Canone ivato"]||0).replace(",", "."))
 
-        monthly[m-1].fleet++
+  const ass =
+  Number(String(v["Canone assicurazione"]||0).replace(",", "."))
 
-        monthly[m-1].canone+=canone
-        monthly[m-1].ivato+=ivato
-        monthly[m-1].ass+=ass
-      }
+  monthly[m-1].fleet++
+
+  monthly[m-1].canone += canone
+  monthly[m-1].ivato += ivato
+  monthly[m-1].ass += ass
+}
     }
   })
 
