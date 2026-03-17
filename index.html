@@ -4,7 +4,6 @@
 
 <meta charset="UTF-8">
 <title>Dashboard Flotta</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
@@ -13,12 +12,8 @@
 <style>
 
 :root{
---bg-main:#0f1115;
---bg-card:#181b22;
---border:#262a33;
 --text:#f5f5f7;
 --muted:#9ca3af;
---accent:#3b82f6;
 }
 
 body{
@@ -67,7 +62,6 @@ padding:1.5rem;
 
 </head>
 
-
 <body>
 
 <div class="container-fluid p-4">
@@ -76,10 +70,9 @@ padding:1.5rem;
 
 <!-- SIDEBAR -->
 <div class="col-lg-3">
-
 <div class="sidebar">
 
-<h6 class="mb-3">Filtri</h6>
+<h6>Filtri</h6>
 
 <label>Anno</label>
 <select id="yearFilter" class="form-select form-select-sm mb-3" multiple>
@@ -103,9 +96,7 @@ padding:1.5rem;
 </select>
 
 </div>
-
 </div>
-
 
 <!-- MAIN -->
 <div class="col-lg-9">
@@ -114,38 +105,37 @@ padding:1.5rem;
 
 <div class="col-md-3">
 <div class="kpi-card">
-<div class="kpi-title">🚗 Flotta media</div>
+<div class="kpi-title">Flotta media</div>
 <div id="kpiFleet" class="kpi-value">–</div>
 </div>
 </div>
 
 <div class="col-md-3">
 <div class="kpi-card">
-<div class="kpi-title">💶 Canone imponibile</div>
+<div class="kpi-title">Canone imponibile</div>
 <div id="kpiCanone" class="kpi-value">–</div>
-<div class="kpi-sub">ivato: <span id="kpiIvato">–</span></div>
-<div class="kpi-sub">medio: <span id="kpiCanoneMedio">–</span></div>
+<div class="kpi-sub">ivato: <span id="kpiIvato"></span></div>
+<div class="kpi-sub">medio: <span id="kpiCanoneMedio"></span></div>
 </div>
 </div>
 
 <div class="col-md-3">
 <div class="kpi-card">
-<div class="kpi-title">🛡 Assicurazione</div>
+<div class="kpi-title">Assicurazione</div>
 <div id="kpiAss" class="kpi-value">–</div>
-<div class="kpi-sub">media: <span id="kpiAssMedio">–</span></div>
+<div class="kpi-sub">media: <span id="kpiAssMedio"></span></div>
 </div>
 </div>
 
 <div class="col-md-3">
 <div class="kpi-card">
-<div class="kpi-title">💰 Costo totale</div>
+<div class="kpi-title">Costo totale</div>
 <div id="kpiCosto" class="kpi-value">–</div>
-<div class="kpi-sub">medio: <span id="kpiCostoMedio">–</span></div>
+<div class="kpi-sub">medio: <span id="kpiCostoMedio"></span></div>
 </div>
 </div>
 
 </div>
-
 
 <div class="chart-container">
 <canvas id="fleetChart"></canvas>
@@ -157,177 +147,101 @@ padding:1.5rem;
 
 </div>
 
-
 <script>
 
-// =========================
-// CONFIG
-// =========================
+// ================= CONFIG =================
 
 const VEHICLE_GROUPS = [
-"Commercial Van",
-"Large",
-"Economy",
-"Small",
-"Mini",
-"Premium",
-"Suv",
-"People Mover",
-"Station Wagon",
-"Cabriolet"
+"Commercial Van","Large","Economy","Small","Mini",
+"Premium","Suv","People Mover","Station Wagon","Cabriolet"
 ]
 
-const MONTH_LABELS = [
-"Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-"Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"
+const MONTHS = [
+"Gen","Feb","Mar","Apr","Mag","Giu",
+"Lug","Ago","Set","Ott","Nov","Dic"
 ]
 
 let fleetData = []
 let monthly = []
 let chart = null
 
-
-// =========================
-// NORMALIZZAZIONE GRUPPI
-// =========================
+// ================= NORMALIZE =================
 
 function normalizeGroup(raw){
-
   if(!raw) return null
-
-  const s = String(raw).toLowerCase()
+  const s = raw.toLowerCase()
 
   if(s.includes("economy")) return "Economy"
   if(s.includes("mini")) return "Mini"
-  if(s.includes("small") || s.includes("group b")) return "Small"
-  if(s.includes("large") || s.includes("group d")) return "Large"
+  if(s.includes("small")) return "Small"
+  if(s.includes("large")) return "Large"
   if(s.includes("suv")) return "Suv"
   if(s.includes("premium")) return "Premium"
   if(s.includes("station")) return "Station Wagon"
-  if(s.includes("cabrio") || s.includes("group x")) return "Cabriolet"
-
-  if(s.includes("furgon") || s.includes("commercial"))
-    return "Commercial Van"
-
-  if(s.includes("people") || s.includes("van"))
-    return "People Mover"
+  if(s.includes("cabrio")) return "Cabriolet"
+  if(s.includes("furgon") || s.includes("commercial")) return "Commercial Van"
+  if(s.includes("van")) return "People Mover"
 
   return null
 }
 
-
-// =========================
-// INIT
-// =========================
+// ================= INIT =================
 
 document.addEventListener("DOMContentLoaded", init)
 
 async function init(){
-
   await loadData()
-
-  initMonths()
-  initGroups()
-  initAcquisition()
-  initEvents()
-
+  initFilters()
   applyFilters()
 }
 
-
-// =========================
-// LOAD JSON
-// =========================
-
 async function loadData(){
-
-  const res = await fetch("fleetData_dashboard.json")
-
+  let res = await fetch("fleetData_dashboard.json")
   let text = await res.text()
-
   text = text.replace(/NaN/g,"null")
-
   fleetData = JSON.parse(text)
 }
 
+// ================= FILTERS =================
 
-// =========================
-// FILTER INIT
-// =========================
+function initFilters(){
 
-function initMonths(){
-
-  const sel = document.getElementById("monthFilter")
-
-  MONTH_LABELS.forEach((m,i)=>{
-
-    const opt=document.createElement("option")
-    opt.value=i+1
-    opt.textContent=m
-
-    sel.appendChild(opt)
+  MONTHS.forEach((m,i)=>{
+    let o=document.createElement("option")
+    o.value=i+1
+    o.textContent=m
+    monthFilter.appendChild(o)
   })
-}
-
-function initGroups(){
-
-  const sel=document.getElementById("groupFilter")
 
   VEHICLE_GROUPS.forEach(g=>{
-    const opt=document.createElement("option")
-    opt.value=g
-    opt.textContent=g
-    sel.appendChild(opt)
-  })
-}
-
-function initAcquisition(){
-
-  const sel=document.getElementById("acquisitionFilter")
-
-  const set=new Set()
-
-  fleetData.forEach(r=>{
-    if(r.provider) set.add(r.provider)
+    let o=document.createElement("option")
+    o.value=g
+    o.textContent=g
+    groupFilter.appendChild(o)
   })
 
-  set.forEach(a=>{
-    const opt=document.createElement("option")
-    opt.value=a
-    opt.textContent=a
-    sel.appendChild(opt)
-  })
-}
+  let providers=new Set()
+  fleetData.forEach(r=>providers.add(r.provider))
 
-function initEvents(){
+  providers.forEach(p=>{
+    let o=document.createElement("option")
+    o.value=p
+    o.textContent=p
+    acquisitionFilter.appendChild(o)
+  })
 
   ["monthFilter","groupFilter","acquisitionFilter"]
-
   .forEach(id=>{
-    document.getElementById(id)
-    .addEventListener("change",applyFilters)
+    document.getElementById(id).addEventListener("change",applyFilters)
   })
 }
 
-
-// =========================
-// UTILS
-// =========================
-
 function getSelected(id){
-
-  const sel=document.getElementById(id)
-  const vals=[...sel.selectedOptions].map(o=>o.value)
-
-  if(vals.includes("ALL")) return []
-
-  return vals.map(v=>isNaN(v)?v:Number(v))
+  const vals=[...document.getElementById(id).selectedOptions].map(o=>o.value)
+  return vals.includes("ALL")?[]:vals.map(v=>isNaN(v)?v:Number(v))
 }
 
-
-// =========================
-// CORE LOGIC
-// =========================
+// ================= CORE =================
 
 function applyFilters(){
 
@@ -335,157 +249,110 @@ function applyFilters(){
   const groups = getSelected("groupFilter")
   const acquisitions = getSelected("acquisitionFilter")
 
-  // init mesi
-  monthly = []
+  monthly = Array.from({length:12},(_,i)=>({
+    month:i+1,fleet:0,canone:0,ivato:0,ass:0
+  }))
 
-  for(let m=1;m<=12;m++){
-    monthly.push({
-      month:m,
-      fleet:0,
-      canone:0,
-      ivato:0,
-      ass:0
-    })
-  }
+  const yearStart = new Date(2025,0,1)
+  const yearEnd = new Date(2025,11,31)
 
- const yearStart = new Date(2025,0,1)
-const yearEnd = new Date(2025,11,31)
+  fleetData.forEach(v=>{
 
-fleetData.forEach(v=>{
+    const gruppo = normalizeGroup(v.category)
+    if(!gruppo) return
 
-  const gruppo = normalizeGroup(v.category)
-  if(!gruppo) return
+    const start = new Date(v["Date In"])
+    const end = v["Date Out"] ? new Date(v["Date Out"]) : yearEnd
 
-  const start = new Date(v["Date In"])
+    if(end < yearStart || start > yearEnd) return
 
-  // 👉 FIX: gestisce veicoli senza data fine
-  const end = v["Date Out"]
-    ? new Date(v["Date Out"])
-    : yearEnd
+    const canone = Number(String(v["Canone imponibile"]||0).replace(",", "."))
+    const ivato = Number(String(v["Canone ivato"]||0).replace(",", "."))
+    const ass = Number(String(v["Canone assicurazione"]||0).replace(",", "."))
 
-  // 👉 FIX: esclude fuori 2025
-  if(end < yearStart || start > yearEnd) return
+    for(let m=1;m<=12;m++){
 
-  for(let m=1;m<=12;m++){
+      const monthStart = new Date(2025,m-1,1)
+      const monthEnd = new Date(2025,m,0)
 
-    const monthStart = new Date(2025, m-1, 1)
-    const monthEnd = new Date(2025, m, 0)
+      const overlapStart = new Date(Math.max(start, monthStart))
+      const overlapEnd = new Date(Math.min(end, monthEnd))
 
-    const overlapStart = new Date(Math.max(start, monthStart))
-    const overlapEnd = new Date(Math.min(end, monthEnd))
+      if(overlapEnd < overlapStart) continue
 
-    if(overlapEnd < overlapStart) continue
+      const overlapDays =
+        Math.floor((overlapEnd - overlapStart)/(1000*60*60*24)) + 1
 
-    const overlapDays =
-      Math.floor((overlapEnd - overlapStart) / (1000*60*60*24)) + 1
+      if(months.length && !months.includes(m)) continue
+      if(groups.length && !groups.includes(gruppo)) continue
+      if(acquisitions.length && !acquisitions.includes(v.provider)) continue
 
-    // filtri
-    if(months.length && !months.includes(m)) continue
-    if(groups.length && !groups.includes(gruppo)) continue
-    if(acquisitions.length && !acquisitions.includes(v.provider)) continue
+      // COSTI SEMPRE
+      monthly[m-1].canone += canone
+      monthly[m-1].ivato += ivato
+      monthly[m-1].ass += ass
 
-    const canone =
-    Number(String(v["Canone imponibile"]||0).replace(",", "."))
-
-    const ivato =
-    Number(String(v["Canone ivato"]||0).replace(",", "."))
-
-    const ass =
-    Number(String(v["Canone assicurazione"]||0).replace(",", "."))
-
-    // ✅ COSTI: sempre se attivo nel mese
-    monthly[m-1].canone += canone
-    monthly[m-1].ivato += ivato
-    monthly[m-1].ass += ass
-
-    // ✅ FLOTTA: solo >= 20 giorni
-    if(overlapDays >= 20){
-      monthly[m-1].fleet++
+      // FLOTTA SOLO >=20 giorni
+      if(overlapDays >= 20){
+        monthly[m-1].fleet++
+      }
     }
+  })
 
-  }
-
-})
   updateKPI()
   renderChart()
 }
 
-
-// =========================
-// KPI
-// =========================
+// ================= KPI =================
 
 function updateKPI(){
 
   const monthsSelected = getSelected("monthFilter")
 
-  let fleet=0, canone=0, ivato=0, ass=0
-  let monthsCount = 0
+  let fleet=0,canone=0,ivato=0,ass=0,count=0
 
   monthly.forEach(m=>{
-
-    // se filtro mesi attivo → considera solo quelli
     if(monthsSelected.length && !monthsSelected.includes(m.month)) return
 
-    fleet += m.fleet
-    canone += m.canone
-    ivato += m.ivato
-    ass += m.ass
-
-    monthsCount++
+    fleet+=m.fleet
+    canone+=m.canone
+    ivato+=m.ivato
+    ass+=m.ass
+    count++
   })
 
-  // fallback sicurezza
-  if(monthsCount === 0) monthsCount = 12
+  if(count===0) count=12
 
-  const fleetAvg = fleet / monthsCount
-  const costTot = canone + ass
+  const fleetAvg = fleet/count
+  const costTot = canone+ass
 
-  document.getElementById("kpiFleet").innerText = fleetAvg.toFixed(1)
+  kpiFleet.innerText=fleetAvg.toFixed(1)
+  kpiCanone.innerText="€ "+canone.toLocaleString("it")
+  kpiIvato.innerText="€ "+ivato.toLocaleString("it")
+  kpiCanoneMedio.innerText="€ "+(canone/fleetAvg).toFixed(0)
 
-  document.getElementById("kpiCanone").innerText = "€ "+canone.toLocaleString("it")
-  document.getElementById("kpiIvato").innerText = "€ "+ivato.toLocaleString("it")
-  document.getElementById("kpiCanoneMedio").innerText = "€ "+(canone/fleetAvg).toFixed(0)
+  kpiAss.innerText="€ "+ass.toLocaleString("it")
+  kpiAssMedio.innerText="€ "+(ass/fleetAvg).toFixed(0)
 
-  document.getElementById("kpiAss").innerText = "€ "+ass.toLocaleString("it")
-  document.getElementById("kpiAssMedio").innerText = "€ "+(ass/fleetAvg).toFixed(0)
-
-  document.getElementById("kpiCosto").innerText = "€ "+costTot.toLocaleString("it")
-  document.getElementById("kpiCostoMedio").innerText = "€ "+(costTot/fleetAvg).toFixed(0)
+  kpiCosto.innerText="€ "+costTot.toLocaleString("it")
+  kpiCostoMedio.innerText="€ "+(costTot/fleetAvg).toFixed(0)
 }
 
-// =========================
-// CHART
-// =========================
+// ================= CHART =================
 
 function renderChart(){
 
   if(chart) chart.destroy()
 
-  const ctx=document.getElementById("fleetChart")
-
-  chart=new Chart(ctx,{
-
+  chart=new Chart(fleetChart,{
     type:"line",
-
     data:{
-      labels:MONTH_LABELS,
+      labels:MONTHS,
       datasets:[
-        {
-          label:"Flotta",
-          data:monthly.map(m=>m.fleet),
-          borderColor:"#3b82f6",
-          tension:.3
-        },
-        {
-          label:"Costo totale",
-          data:monthly.map(m=>m.canone+m.ass),
-          borderColor:"#ef4444",
-          tension:.3
-        }
+        {label:"Flotta",data:monthly.map(m=>m.fleet),borderColor:"#3b82f6"},
+        {label:"Costo",data:monthly.map(m=>m.canone+m.ass),borderColor:"#ef4444"}
       ]
     }
-
   })
 }
 
