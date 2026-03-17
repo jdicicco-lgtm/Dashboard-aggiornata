@@ -358,16 +358,22 @@ function applyFilters(){
 
     if(!start || !end) return
 
- for(let m=1;m<=12;m++){
+for(let m=1;m<=12;m++){
 
   const monthStart = new Date(2025, m-1, 1)
   const monthEnd = new Date(2025, m, 0)
 
-  const isActive =
-    start <= monthEnd &&
-    end >= monthStart
+  // overlap giorni reali
+  const overlapStart = new Date(Math.max(start, monthStart))
+  const overlapEnd = new Date(Math.min(end, monthEnd))
 
-  if(!isActive) continue
+  // se non c'è overlap salta
+  if(overlapEnd < overlapStart) continue
+
+  const overlapDays =
+    Math.floor((overlapEnd - overlapStart) / (1000*60*60*24)) + 1
+
+  if(overlapDays < 20) continue
 
   if(months.length && !months.includes(m)) continue
   if(groups.length && !groups.includes(gruppo)) continue
