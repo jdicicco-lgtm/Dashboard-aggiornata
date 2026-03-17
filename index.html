@@ -348,56 +348,64 @@ function applyFilters(){
     })
   }
 
-  fleetData.forEach(v=>{
+ const yearStart = new Date(2025,0,1)
+const yearEnd = new Date(2025,11,31)
 
-    const gruppo = normalizeGroup(v.category)
-    if(!gruppo) return
+fleetData.forEach(v=>{
 
-    const start = new Date(v["Date In"])
-    const end = new Date(v["Date Out"])
+  const gruppo = normalizeGroup(v.category)
+  if(!gruppo) return
 
-    if(!start || !end) return
+  const start = new Date(v["Date In"])
 
-for(let m=1;m<=12;m++){
+  // 👉 FIX: gestisce veicoli senza data fine
+  const end = v["Date Out"]
+    ? new Date(v["Date Out"])
+    : yearEnd
 
-  const monthStart = new Date(2025, m-1, 1)
-  const monthEnd = new Date(2025, m, 0)
+  // 👉 FIX: esclude fuori 2025
+  if(end < yearStart || start > yearEnd) return
 
-  const overlapStart = new Date(Math.max(start, monthStart))
-  const overlapEnd = new Date(Math.min(end, monthEnd))
+  for(let m=1;m<=12;m++){
 
-  if(overlapEnd < overlapStart) continue
+    const monthStart = new Date(2025, m-1, 1)
+    const monthEnd = new Date(2025, m, 0)
 
-  const overlapDays =
-    Math.floor((overlapEnd - overlapStart) / (1000*60*60*24)) + 1
+    const overlapStart = new Date(Math.max(start, monthStart))
+    const overlapEnd = new Date(Math.min(end, monthEnd))
 
-  // filtri
-  if(months.length && !months.includes(m)) continue
-  if(groups.length && !groups.includes(gruppo)) continue
-  if(acquisitions.length && !acquisitions.includes(v.provider)) continue
+    if(overlapEnd < overlapStart) continue
 
-  const canone =
-  Number(String(v["Canone imponibile"]||0).replace(",", "."))
+    const overlapDays =
+      Math.floor((overlapEnd - overlapStart) / (1000*60*60*24)) + 1
 
-  const ivato =
-  Number(String(v["Canone ivato"]||0).replace(",", "."))
+    // filtri
+    if(months.length && !months.includes(m)) continue
+    if(groups.length && !groups.includes(gruppo)) continue
+    if(acquisitions.length && !acquisitions.includes(v.provider)) continue
 
-  const ass =
-  Number(String(v["Canone assicurazione"]||0).replace(",", "."))
+    const canone =
+    Number(String(v["Canone imponibile"]||0).replace(",", "."))
 
-  // COSTI
-  monthly[m-1].canone += canone
-  monthly[m-1].ivato += ivato
-  monthly[m-1].ass += ass
+    const ivato =
+    Number(String(v["Canone ivato"]||0).replace(",", "."))
 
-  // FLOTTA
-  if(overlapDays >= 20){
-    monthly[m-1].fleet++
+    const ass =
+    Number(String(v["Canone assicurazione"]||0).replace(",", "."))
+
+    // ✅ COSTI: sempre se attivo nel mese
+    monthly[m-1].canone += canone
+    monthly[m-1].ivato += ivato
+    monthly[m-1].ass += ass
+
+    // ✅ FLOTTA: solo >= 20 giorni
+    if(overlapDays >= 20){
+      monthly[m-1].fleet++
+    }
+
   }
 
-} // ✅ QUESTA MANCAVA
-
-}) // chiude forEach
+})
   updateKPI()
   renderChart()
 }
