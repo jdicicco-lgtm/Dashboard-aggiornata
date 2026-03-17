@@ -65,28 +65,28 @@ padding:15px;
 <div class="col-md-3">
 <div class="kpi-card">
 Flotta
-<div id="fleet"></div>
+<div id="kpiFleet"></div>
 </div>
 </div>
 
 <div class="col-md-3">
 <div class="kpi-card">
 Canone
-<div id="canone"></div>
+<div id="kpiCanone"></div>
 </div>
 </div>
 
 <div class="col-md-3">
 <div class="kpi-card">
 Assicurazione
-<div id="ass"></div>
+<div id="kpiAss"></div>
 </div>
 </div>
 
 <div class="col-md-3">
 <div class="kpi-card">
 Totale
-<div id="tot"></div>
+<div id="kpiTot"></div>
 </div>
 </div>
 
@@ -103,32 +103,32 @@ Totale
 
 const MONTHS = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"]
 
-let data = []
+let fleetData = []
 let monthly = []
+let chart = null
+
+document.addEventListener("DOMContentLoaded", init)
+
+// ================= INIT =================
 
 async function init(){
 
-let res = await fetch("fleetData_dashboard.json")
-let text = await res.text()
-text = text.replace(/NaN/g,"null")
-data = JSON.parse(text)
+  const res = await fetch("fleetData_dashboard.json")
+  let text = await res.text()
+  text = text.replace(/NaN/g,"null")
+  fleetData = JSON.parse(text)
 
-initFilters()
-compute()
-
+  initFilters()
+  compute()
 }
+
+// ================= FILTERS =================
 
 function initFilters(){
 
   const monthSel = document.getElementById("monthFilter")
   const groupSel = document.getElementById("groupFilter")
   const acquisitionSel = document.getElementById("acquisitionFilter")
-
-  // 🔴 BLOCCO ANTI ERRORE DEFINITIVO
-  if(!monthSel || !groupSel || !acquisitionSel){
-    console.error("ERRORE DOM: uno dei filtri non esiste")
-    return
-  }
 
   // mesi
   MONTHS.forEach((m,i)=>{
@@ -142,7 +142,7 @@ function initFilters(){
   let groups = new Set()
   let providers = new Set()
 
-  data.forEach(d=>{
+  fleetData.forEach(d=>{
     if(d.category) groups.add(d.category)
     if(d.provider) providers.add(d.provider)
   })
@@ -161,95 +161,119 @@ function initFilters(){
     acquisitionSel.appendChild(o)
   })
 
-  // eventi
   ["monthFilter","groupFilter","acquisitionFilter"]
   .forEach(id=>{
-    const el = document.getElementById(id)
-    if(el) el.addEventListener("change",compute)
+    document.getElementById(id).addEventListener("change",compute)
   })
 }
 
-function getSel(id){
-let v=[...document.getElementById(id).selectedOptions].map(o=>o.value)
-return v.includes("ALL")?[]:v
+// ================= UTILS =================
+
+function getSelected(id){
+  const vals=[...document.getElementById(id).selectedOptions].map(o=>o.value)
+  return vals.includes("ALL")?[]:vals
 }
+
+// ================= CORE =================
 
 function compute(){
 
-let monthsSel = getSel("monthFilter")
-let groupsSel = getSel("groupFilter")
-let provSel = getSel("acquisitionFilter")
+  const monthsSel = getSelected("monthFilter")
+  const groupsSel = getSelected("groupFilter")
+  const provSel = getSelected("acquisitionFilter")
 
-monthly = Array.from({length:12},()=>({fleet:0,canone:0,ass:0}))
+  monthly = Array.from({length:12},()=>({fleet:0,canone:0,ass:0}))
 
-data.forEach(v=>{
+  fleetData.forEach(v=>{
 
-let start = new Date(v["Date In"])
-let end = v["Date Out"] ? new Date(v["Date Out"]) : new Date(2025,11,31)
+    const start = new Date(v["Date In"])
+    const end = v["Date Out"] ? new Date(v["Date Out"]) : new Date(2025,11,31)
 
-let canone = Number(v["Canone imponibile"]||0)
-let ass = Number(v["Canone assicurazione"]||0)
+    const canone = Number(String(v["Canone imponibile"]||0).replace(",", "."))
+    const ass = Number(String(v["Canone assicurazione"]||0).replace(",", "."))
 
-for(let m=1;m<=12;m++){
+    for(let m=1;m<=12;m++){
 
-let mStart = new Date(2025,m-1,1)
-let mEnd = new Date(2025,m,0)
+      const mStart = new Date(2025,m-1,1)
+      const mEnd = new Date(2025,m,0)
 
-let s = new Date(Math.max(start,mStart))
-let e = new Date(Math.min(end,mEnd))
+      const overlapStart = new Date(Math.max(start,mStart))
+      const overlapEnd = new Date(Math.min(end,mEnd))
 
-if(e < s) continue
+      if(overlapEnd < overlapStart) continue
 
-let days = Math.floor((e-s)/(1000*60*60*24))+1
+      const days = Math.floor((overlapEnd-overlapStart)/(1000*60*60*24))+1
 
-if(monthsSel.length && !monthsSel.includes(String(m))) continue
-if(groupsSel.length && !groupsSel.includes(v.category)) continue
-if(provSel.length && !provSel.includes(v.provider)) continue
+      if(monthsSel.length && !monthsSel.includes(String(m))) continue
+      if(groupsSel.length && !groupsSel.includes(v.category)) continue
+      if(provSel.length && !provSel.includes(v.provider)) continue
 
-// COSTI SEMPRE
-monthly[m-1].canone += canone
-monthly[m-1].ass += ass
+      // COSTI SEMPRE
+      monthly[m-1].canone += canone
+      monthly[m-1].ass += ass
 
-// FLOTTA SOLO >=20 giorni
-if(days >= 20){
-monthly[m-1].fleet++
+      // FLOTTA >=20 giorni
+      if(days >= 20){
+        monthly[m-1].fleet++
+      }
+    }
+  })
+
+  update()
+  drawChart()
 }
 
-}
-
-})
-
-update()
-
-}
+// ================= KPI =================
 
 function update(){
 
-let monthsSel = getSel("monthFilter")
+  const monthsSel = getSelected("monthFilter")
 
-let fleet=0,canone=0,ass=0,count=0
+  let fleet=0,canone=0,ass=0,count=0
 
-monthly.forEach((m,i)=>{
+  monthly.forEach((m,i)=>{
 
-if(monthsSel.length && !monthsSel.includes(String(i+1))) return
+    if(monthsSel.length && !monthsSel.includes(String(i+1))) return
 
-fleet+=m.fleet
-canone+=m.canone
-ass+=m.ass
-count++
+    fleet+=m.fleet
+    canone+=m.canone
+    ass+=m.ass
+    count++
+  })
 
-})
+  if(count===0) count=12
 
-if(count===0) count=12
-
-document.getElementById("fleet").innerText = (fleet/count).toFixed(1)
-document.getElementById("canone").innerText = "€ "+canone.toLocaleString("it")
-document.getElementById("ass").innerText = "€ "+ass.toLocaleString("it")
-document.getElementById("tot").innerText = "€ "+(canone+ass).toLocaleString("it")
-
+  document.getElementById("kpiFleet").innerText = (fleet/count).toFixed(1)
+  document.getElementById("kpiCanone").innerText = "€ "+canone.toLocaleString("it")
+  document.getElementById("kpiAss").innerText = "€ "+ass.toLocaleString("it")
+  document.getElementById("kpiTot").innerText = "€ "+(canone+ass).toLocaleString("it")
 }
 
-init()
+// ================= CHART =================
+
+function drawChart(){
+
+  if(chart) chart.destroy()
+
+  chart = new Chart(document.getElementById("chart"),{
+    type:"line",
+    data:{
+      labels:MONTHS,
+      datasets:[
+        {
+          label:"Flotta",
+          data:monthly.map(m=>m.fleet),
+          borderColor:"#3b82f6"
+        },
+        {
+          label:"Costo",
+          data:monthly.map(m=>m.canone+m.ass),
+          borderColor:"#ef4444"
+        }
+      ]
+    }
+  })
+}
 
 </script>
 
