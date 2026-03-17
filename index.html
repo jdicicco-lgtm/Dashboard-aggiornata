@@ -75,7 +75,15 @@ padding:15px;
 
 <script>
 
+<script>
+
 const MONTHS = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"]
+
+const GROUP_LIST = [
+"Economy","Mini","Small","Large","Suv",
+"Commercial Van","People Mover",
+"Premium","Station Wagon","Cabriolet"
+]
 
 let fleetData = []
 let monthly = []
@@ -94,71 +102,8 @@ async function init(){
   compute()
 }
 
-// ✅ FIX DEFINITIVO QUI
-function initFilters(){
+// ================= NORMALIZE =================
 
-  const monthSel = document.getElementById("monthFilter")
-  const groupSel = document.getElementById("groupFilter")
-  const acquisitionSel = document.getElementById("acquisitionFilter")
-
-  if(!monthSel || !groupSel || !acquisitionSel){
-    console.error("DOM NON PRONTO")
-    return
-  }
-
-  // reset sicurezza (evita doppio append)
-  monthSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
-  groupSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
-  acquisitionSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
-
-  // mesi
-  MONTHS.forEach((m,i)=>{
-    const o=document.createElement("option")
-    o.value=i+1
-    o.textContent=m
-    monthSel.appendChild(o)
-  })
-
-let groups = new Set()
-
-fleetData.forEach(d=>{
-  const g = normalizeGroup(d.category)
-  if(g) groups.add(g)
-})
-  let providers = new Set()
-
-  fleetData.forEach(d=>{
-    if(d.category) groups.add(d.category)
-    if(d.provider) providers.add(d.provider)
-  })
-
-  groups.forEach(g=>{
-    const o=document.createElement("option")
-    o.value=g
-    o.textContent=g
-    groupSel.appendChild(o)
-  })
-
-  providers.forEach(p=>{
-    const o=document.createElement("option")
-    o.value=p
-    o.textContent=p
-    acquisitionSel.appendChild(o)
-  })
-
-  // eventi (puliti)
-  monthSel.onchange = compute
-  groupSel.onchange = compute
-  acquisitionSel.onchange = compute
-}
-
-function getSelected(id){
-  const el = document.getElementById(id)
-  if(!el) return []
-  const vals=[...el.selectedOptions].map(o=>o.value)
-  return vals.includes("ALL")?[]:vals
-}
-  
 function normalizeGroup(raw){
 
   if(!raw) return null
@@ -182,6 +127,76 @@ function normalizeGroup(raw){
 
   return null
 }
+
+// ================= FILTERS =================
+
+function initFilters(){
+
+  const monthSel = document.getElementById("monthFilter")
+  const groupSel = document.getElementById("groupFilter")
+  const acquisitionSel = document.getElementById("acquisitionFilter")
+
+  // reset
+  monthSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
+  groupSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
+  acquisitionSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
+
+  // mesi
+  MONTHS.forEach((m,i)=>{
+    const o=document.createElement("option")
+    o.value=i+1
+    o.textContent=m
+    monthSel.appendChild(o)
+  })
+
+  // gruppi NORMALIZZATI
+  let groups = new Set()
+
+  fleetData.forEach(d=>{
+    const g = normalizeGroup(d.category)
+    if(g) groups.add(g)
+  })
+
+  // ordine pulito
+  GROUP_LIST.forEach(g=>{
+    if(groups.has(g)){
+      const o=document.createElement("option")
+      o.value=g
+      o.textContent=g
+      groupSel.appendChild(o)
+    }
+  })
+
+  // provider
+  let providers = new Set()
+  fleetData.forEach(d=>{
+    if(d.provider) providers.add(d.provider)
+  })
+
+  providers.forEach(p=>{
+    const o=document.createElement("option")
+    o.value=p
+    o.textContent=p
+    acquisitionSel.appendChild(o)
+  })
+
+  // eventi
+  monthSel.onchange = compute
+  groupSel.onchange = compute
+  acquisitionSel.onchange = compute
+}
+
+// ================= UTILS =================
+
+function getSelected(id){
+  const el = document.getElementById(id)
+  if(!el) return []
+  const vals=[...el.selectedOptions].map(o=>o.value)
+  return vals.includes("ALL")?[]:vals
+}
+
+// ================= CORE =================
+
 function compute(){
 
   const monthsSel = getSelected("monthFilter")
@@ -192,16 +207,16 @@ function compute(){
 
   fleetData.forEach(v=>{
 
-  const gruppo = normalizeGroup(v.category)
-  if(!gruppo) return
+    const gruppo = normalizeGroup(v.category)
+    if(!gruppo) return
 
-  const start = new Date(v["Date In"])
-  const end = v["Date Out"] ? new Date(v["Date Out"]) : new Date(2025,11,31)
+    const start = new Date(v["Date In"])
+    const end = v["Date Out"] ? new Date(v["Date Out"]) : new Date(2025,11,31)
 
-  const canone = Number(String(v["Canone imponibile"]||0).replace(",", "."))
-  const ass = Number(String(v["Canone assicurazione"]||0).replace(",", "."))
+    const canone = Number(String(v["Canone imponibile"]||0).replace(",", "."))
+    const ass = Number(String(v["Canone assicurazione"]||0).replace(",", "."))
 
-  for(let m=1;m<=12;m++){
+    for(let m=1;m<=12;m++){
 
       const mStart = new Date(2025,m-1,1)
       const mEnd = new Date(2025,m,0)
@@ -212,18 +227,16 @@ function compute(){
       if(overlapEnd < overlapStart) continue
 
       const days = Math.floor((overlapEnd-overlapStart)/(1000*60*60*24))+1
-      const gruppo = normalizeGroup(v.category)
-if(!gruppo) return
-
-if(groupsSel.length && !groupsSel.includes(gruppo)) continue
 
       if(monthsSel.length && !monthsSel.includes(String(m))) continue
-     
+      if(groupsSel.length && !groupsSel.includes(gruppo)) continue
       if(provSel.length && !provSel.includes(v.provider)) continue
 
+      // COSTI
       monthly[m-1].canone += canone
       monthly[m-1].ass += ass
 
+      // FLOTTA
       if(days >= 20){
         monthly[m-1].fleet++
       }
@@ -233,6 +246,8 @@ if(groupsSel.length && !groupsSel.includes(gruppo)) continue
   update()
   drawChart()
 }
+
+// ================= KPI =================
 
 function update(){
 
@@ -258,6 +273,8 @@ function update(){
   document.getElementById("kpiTot").innerText = "€ "+(canone+ass).toLocaleString("it")
 }
 
+// ================= CHART =================
+
 function drawChart(){
 
   if(chart) chart.destroy()
@@ -275,6 +292,3 @@ function drawChart(){
 }
 
 </script>
-
-</body>
-</html>
