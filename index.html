@@ -206,33 +206,44 @@ async function loadData(){
 
 function initFilters(){
 
+  const monthSel = document.getElementById("monthFilter")
+  const groupSel = document.getElementById("groupFilter")
+  const acquisitionSel = document.getElementById("acquisitionFilter")
+
+  // mesi
   MONTHS.forEach((m,i)=>{
     let o=document.createElement("option")
     o.value=i+1
     o.textContent=m
-    monthFilter.appendChild(o)
+    monthSel.appendChild(o)
   })
 
+  // gruppi
   VEHICLE_GROUPS.forEach(g=>{
     let o=document.createElement("option")
     o.value=g
     o.textContent=g
-    groupFilter.appendChild(o)
+    groupSel.appendChild(o)
   })
 
+  // provider
   let providers=new Set()
-  fleetData.forEach(r=>providers.add(r.provider))
+  fleetData.forEach(r=>{
+    if(r.provider) providers.add(r.provider)
+  })
 
   providers.forEach(p=>{
     let o=document.createElement("option")
     o.value=p
     o.textContent=p
-    acquisitionFilter.appendChild(o)
+    acquisitionSel.appendChild(o)
   })
 
+  // eventi
   ["monthFilter","groupFilter","acquisitionFilter"]
   .forEach(id=>{
-    document.getElementById(id).addEventListener("change",applyFilters)
+    document.getElementById(id)
+      .addEventListener("change",applyFilters)
   })
 }
 
