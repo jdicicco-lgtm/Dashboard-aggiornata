@@ -35,7 +35,6 @@ padding:15px;
 <div class="container-fluid p-4">
 <div class="row">
 
-<!-- FILTRI -->
 <div class="col-lg-3">
 <div class="sidebar">
 
@@ -57,45 +56,20 @@ padding:15px;
 </div>
 </div>
 
-<!-- KPI -->
 <div class="col-lg-9">
 
 <div class="row mb-3">
 
-<div class="col-md-3">
-<div class="kpi-card">
-Flotta
-<div id="kpiFleet"></div>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="kpi-card">
-Canone
-<div id="kpiCanone"></div>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="kpi-card">
-Assicurazione
-<div id="kpiAss"></div>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="kpi-card">
-Totale
-<div id="kpiTot"></div>
-</div>
-</div>
+<div class="col-md-3"><div class="kpi-card">Flotta<div id="kpiFleet"></div></div></div>
+<div class="col-md-3"><div class="kpi-card">Canone<div id="kpiCanone"></div></div></div>
+<div class="col-md-3"><div class="kpi-card">Assicurazione<div id="kpiAss"></div></div></div>
+<div class="col-md-3"><div class="kpi-card">Totale<div id="kpiTot"></div></div></div>
 
 </div>
 
 <canvas id="chart"></canvas>
 
 </div>
-
 </div>
 </div>
 
@@ -109,8 +83,6 @@ let chart = null
 
 document.addEventListener("DOMContentLoaded", init)
 
-// ================= INIT =================
-
 async function init(){
 
   const res = await fetch("fleetData_dashboard.json")
@@ -122,19 +94,31 @@ async function init(){
   compute()
 }
 
-// ================= FILTERS =================
-
+// ✅ FIX DEFINITIVO QUI
 function initFilters(){
+
+  const monthSel = document.getElementById("monthFilter")
+  const groupSel = document.getElementById("groupFilter")
+  const acquisitionSel = document.getElementById("acquisitionFilter")
+
+  if(!monthSel || !groupSel || !acquisitionSel){
+    console.error("DOM NON PRONTO")
+    return
+  }
+
+  // reset sicurezza (evita doppio append)
+  monthSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
+  groupSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
+  acquisitionSel.innerHTML = '<option value="ALL" selected>Tutti</option>'
 
   // mesi
   MONTHS.forEach((m,i)=>{
     const o=document.createElement("option")
     o.value=i+1
     o.textContent=m
-    document.querySelector("#monthFilter").appendChild(o)
+    monthSel.appendChild(o)
   })
 
-  // gruppi + provider
   let groups = new Set()
   let providers = new Set()
 
@@ -147,35 +131,28 @@ function initFilters(){
     const o=document.createElement("option")
     o.value=g
     o.textContent=g
-    document.querySelector("#groupFilter").appendChild(o)
+    groupSel.appendChild(o)
   })
 
   providers.forEach(p=>{
     const o=document.createElement("option")
     o.value=p
     o.textContent=p
-    document.querySelector("#acquisitionFilter").appendChild(o)
+    acquisitionSel.appendChild(o)
   })
 
-  // eventi SAFE
-  ["monthFilter","groupFilter","acquisitionFilter"].forEach(id=>{
-    const el = document.querySelector("#"+id)
-    if(el){
-      el.addEventListener("change",compute)
-    }else{
-      console.error("Manca elemento:", id)
-    }
-  })
+  // eventi (puliti)
+  monthSel.onchange = compute
+  groupSel.onchange = compute
+  acquisitionSel.onchange = compute
 }
-
-// ================= UTILS =================
 
 function getSelected(id){
-  const vals=[...document.getElementById(id).selectedOptions].map(o=>o.value)
+  const el = document.getElementById(id)
+  if(!el) return []
+  const vals=[...el.selectedOptions].map(o=>o.value)
   return vals.includes("ALL")?[]:vals
 }
-
-// ================= CORE =================
 
 function compute(){
 
@@ -209,11 +186,9 @@ function compute(){
       if(groupsSel.length && !groupsSel.includes(v.category)) continue
       if(provSel.length && !provSel.includes(v.provider)) continue
 
-      // COSTI SEMPRE
       monthly[m-1].canone += canone
       monthly[m-1].ass += ass
 
-      // FLOTTA >=20 giorni
       if(days >= 20){
         monthly[m-1].fleet++
       }
@@ -223,8 +198,6 @@ function compute(){
   update()
   drawChart()
 }
-
-// ================= KPI =================
 
 function update(){
 
@@ -250,8 +223,6 @@ function update(){
   document.getElementById("kpiTot").innerText = "€ "+(canone+ass).toLocaleString("it")
 }
 
-// ================= CHART =================
-
 function drawChart(){
 
   if(chart) chart.destroy()
@@ -261,16 +232,8 @@ function drawChart(){
     data:{
       labels:MONTHS,
       datasets:[
-        {
-          label:"Flotta",
-          data:monthly.map(m=>m.fleet),
-          borderColor:"#3b82f6"
-        },
-        {
-          label:"Costo",
-          data:monthly.map(m=>m.canone+m.ass),
-          borderColor:"#ef4444"
-        }
+        {label:"Flotta",data:monthly.map(m=>m.fleet),borderColor:"#3b82f6"},
+        {label:"Costo",data:monthly.map(m=>m.canone+m.ass),borderColor:"#ef4444"}
       ]
     }
   })
