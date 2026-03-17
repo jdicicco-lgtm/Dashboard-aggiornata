@@ -401,16 +401,28 @@ function applyFilters(){
 
 function updateKPI(){
 
+  const monthsSelected = getSelected("monthFilter")
+
   let fleet=0, canone=0, ivato=0, ass=0
+  let monthsCount = 0
 
   monthly.forEach(m=>{
-    fleet+=m.fleet
-    canone+=m.canone
-    ivato+=m.ivato
-    ass+=m.ass
+
+    // se filtro mesi attivo → considera solo quelli
+    if(monthsSelected.length && !monthsSelected.includes(m.month)) return
+
+    fleet += m.fleet
+    canone += m.canone
+    ivato += m.ivato
+    ass += m.ass
+
+    monthsCount++
   })
 
-  const fleetAvg = fleet/12
+  // fallback sicurezza
+  if(monthsCount === 0) monthsCount = 12
+
+  const fleetAvg = fleet / monthsCount
   const costTot = canone + ass
 
   document.getElementById("kpiFleet").innerText = fleetAvg.toFixed(1)
@@ -425,7 +437,6 @@ function updateKPI(){
   document.getElementById("kpiCosto").innerText = "€ "+costTot.toLocaleString("it")
   document.getElementById("kpiCostoMedio").innerText = "€ "+(costTot/fleetAvg).toFixed(0)
 }
-
 
 // =========================
 // CHART
