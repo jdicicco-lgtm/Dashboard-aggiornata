@@ -363,41 +363,41 @@ for(let m=1;m<=12;m++){
   const monthStart = new Date(2025, m-1, 1)
   const monthEnd = new Date(2025, m, 0)
 
-  // overlap giorni reali
   const overlapStart = new Date(Math.max(start, monthStart))
   const overlapEnd = new Date(Math.min(end, monthEnd))
 
-  // se non c'è overlap salta
   if(overlapEnd < overlapStart) continue
 
   const overlapDays =
     Math.floor((overlapEnd - overlapStart) / (1000*60*60*24)) + 1
 
-// filtri
-if(months.length && !months.includes(m)) continue
-if(groups.length && !groups.includes(gruppo)) continue
-if(acquisitions.length && !acquisitions.includes(v.provider)) continue
+  // filtri
+  if(months.length && !months.includes(m)) continue
+  if(groups.length && !groups.includes(gruppo)) continue
+  if(acquisitions.length && !acquisitions.includes(v.provider)) continue
 
-const canone =
-Number(String(v["Canone imponibile"]||0).replace(",", "."))
+  const canone =
+  Number(String(v["Canone imponibile"]||0).replace(",", "."))
 
-const ivato =
-Number(String(v["Canone ivato"]||0).replace(",", "."))
+  const ivato =
+  Number(String(v["Canone ivato"]||0).replace(",", "."))
 
-const ass =
-Number(String(v["Canone assicurazione"]||0).replace(",", "."))
+  const ass =
+  Number(String(v["Canone assicurazione"]||0).replace(",", "."))
 
-// COSTI → sempre se il veicolo è presente nel mese
-monthly[m-1].canone += canone
-monthly[m-1].ivato += ivato
-monthly[m-1].ass += ass
+  // COSTI
+  monthly[m-1].canone += canone
+  monthly[m-1].ivato += ivato
+  monthly[m-1].ass += ass
 
-// FLOTTA → solo se almeno 20 giorni
-if(overlapDays >= 20){
-  monthly[m-1].fleet++
-}
+  // FLOTTA
+  if(overlapDays >= 20){
+    monthly[m-1].fleet++
+  }
 
-})
+} // ✅ QUESTA MANCAVA
+
+}) // chiude forEach
   updateKPI()
   renderChart()
 }
