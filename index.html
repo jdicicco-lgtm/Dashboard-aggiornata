@@ -119,7 +119,12 @@ function initFilters(){
     monthSel.appendChild(o)
   })
 
-  let groups = new Set()
+let groups = new Set()
+
+fleetData.forEach(d=>{
+  const g = normalizeGroup(d.category)
+  if(g) groups.add(g)
+})
   let providers = new Set()
 
   fleetData.forEach(d=>{
@@ -153,7 +158,30 @@ function getSelected(id){
   const vals=[...el.selectedOptions].map(o=>o.value)
   return vals.includes("ALL")?[]:vals
 }
+  
+function normalizeGroup(raw){
 
+  if(!raw) return null
+
+  const s = raw.toLowerCase()
+
+  if(s.includes("economy")) return "Economy"
+  if(s.includes("mini")) return "Mini"
+  if(s.includes("small") || s.includes("group b")) return "Small"
+  if(s.includes("large") || s.includes("group d")) return "Large"
+  if(s.includes("suv")) return "Suv"
+  if(s.includes("premium") || s.includes("group p")) return "Premium"
+  if(s.includes("station")) return "Station Wagon"
+  if(s.includes("cabrio") || s.includes("group x")) return "Cabriolet"
+
+  if(s.includes("furgon") || s.includes("commercial"))
+    return "Commercial Van"
+
+  if(s.includes("van"))
+    return "People Mover"
+
+  return null
+}
 function compute(){
 
   const monthsSel = getSelected("monthFilter")
@@ -164,13 +192,16 @@ function compute(){
 
   fleetData.forEach(v=>{
 
-    const start = new Date(v["Date In"])
-    const end = v["Date Out"] ? new Date(v["Date Out"]) : new Date(2025,11,31)
+  const gruppo = normalizeGroup(v.category)
+  if(!gruppo) return
 
-    const canone = Number(String(v["Canone imponibile"]||0).replace(",", "."))
-    const ass = Number(String(v["Canone assicurazione"]||0).replace(",", "."))
+  const start = new Date(v["Date In"])
+  const end = v["Date Out"] ? new Date(v["Date Out"]) : new Date(2025,11,31)
 
-    for(let m=1;m<=12;m++){
+  const canone = Number(String(v["Canone imponibile"]||0).replace(",", "."))
+  const ass = Number(String(v["Canone assicurazione"]||0).replace(",", "."))
+
+  for(let m=1;m<=12;m++){
 
       const mStart = new Date(2025,m-1,1)
       const mEnd = new Date(2025,m,0)
@@ -181,9 +212,13 @@ function compute(){
       if(overlapEnd < overlapStart) continue
 
       const days = Math.floor((overlapEnd-overlapStart)/(1000*60*60*24))+1
+      const gruppo = normalizeGroup(v.category)
+if(!gruppo) return
+
+if(groupsSel.length && !groupsSel.includes(gruppo)) continue
 
       if(monthsSel.length && !monthsSel.includes(String(m))) continue
-      if(groupsSel.length && !groupsSel.includes(v.category)) continue
+     
       if(provSel.length && !provSel.includes(v.provider)) continue
 
       monthly[m-1].canone += canone
