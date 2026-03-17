@@ -126,19 +126,15 @@ async function init(){
 
 function initFilters(){
 
-  const monthSel = document.getElementById("monthFilter")
-  const groupSel = document.getElementById("groupFilter")
-  const acquisitionSel = document.getElementById("acquisitionFilter")
-
   // mesi
   MONTHS.forEach((m,i)=>{
     const o=document.createElement("option")
     o.value=i+1
     o.textContent=m
-    monthSel.appendChild(o)
+    document.querySelector("#monthFilter").appendChild(o)
   })
 
-  // gruppi
+  // gruppi + provider
   let groups = new Set()
   let providers = new Set()
 
@@ -151,19 +147,24 @@ function initFilters(){
     const o=document.createElement("option")
     o.value=g
     o.textContent=g
-    groupSel.appendChild(o)
+    document.querySelector("#groupFilter").appendChild(o)
   })
 
   providers.forEach(p=>{
     const o=document.createElement("option")
     o.value=p
     o.textContent=p
-    acquisitionSel.appendChild(o)
+    document.querySelector("#acquisitionFilter").appendChild(o)
   })
 
-  ["monthFilter","groupFilter","acquisitionFilter"]
-  .forEach(id=>{
-    document.getElementById(id).addEventListener("change",compute)
+  // eventi SAFE
+  ["monthFilter","groupFilter","acquisitionFilter"].forEach(id=>{
+    const el = document.querySelector("#"+id)
+    if(el){
+      el.addEventListener("change",compute)
+    }else{
+      console.error("Manca elemento:", id)
+    }
   })
 }
 
