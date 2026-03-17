@@ -120,44 +120,53 @@ compute()
 
 function initFilters(){
 
-const mSel = document.getElementById("monthFilter")
-const gSel = document.getElementById("groupFilter")
-const aSel = document.getElementById("acquisitionFilter")
+  const monthSel = document.getElementById("monthFilter")
+  const groupSel = document.getElementById("groupFilter")
+  const acquisitionSel = document.getElementById("acquisitionFilter")
 
-MONTHS.forEach((m,i)=>{
-let o=document.createElement("option")
-o.value=i+1
-o.textContent=m
-mSel.appendChild(o)
-})
+  // 🔴 BLOCCO ANTI ERRORE DEFINITIVO
+  if(!monthSel || !groupSel || !acquisitionSel){
+    console.error("ERRORE DOM: uno dei filtri non esiste")
+    return
+  }
 
-let groups = new Set()
-let providers = new Set()
+  // mesi
+  MONTHS.forEach((m,i)=>{
+    const o=document.createElement("option")
+    o.value=i+1
+    o.textContent=m
+    monthSel.appendChild(o)
+  })
 
-data.forEach(d=>{
-if(d.category) groups.add(d.category)
-if(d.provider) providers.add(d.provider)
-})
+  // gruppi
+  let groups = new Set()
+  let providers = new Set()
 
-groups.forEach(g=>{
-let o=document.createElement("option")
-o.value=g
-o.textContent=g
-gSel.appendChild(o)
-})
+  data.forEach(d=>{
+    if(d.category) groups.add(d.category)
+    if(d.provider) providers.add(d.provider)
+  })
 
-providers.forEach(p=>{
-let o=document.createElement("option")
-o.value=p
-o.textContent=p
-aSel.appendChild(o)
-})
+  groups.forEach(g=>{
+    const o=document.createElement("option")
+    o.value=g
+    o.textContent=g
+    groupSel.appendChild(o)
+  })
 
-["monthFilter","groupFilter","acquisitionFilter"]
-.forEach(id=>{
-document.getElementById(id).addEventListener("change",compute)
-})
+  providers.forEach(p=>{
+    const o=document.createElement("option")
+    o.value=p
+    o.textContent=p
+    acquisitionSel.appendChild(o)
+  })
 
+  // eventi
+  ["monthFilter","groupFilter","acquisitionFilter"]
+  .forEach(id=>{
+    const el = document.getElementById(id)
+    if(el) el.addEventListener("change",compute)
+  })
 }
 
 function getSel(id){
