@@ -358,10 +358,10 @@ function applyFilters(){
 
     if(!start || !end) return
 
-   for(let m=1;m<=12;m++){
+ for(let m=1;m<=12;m++){
 
   const monthStart = new Date(2025, m-1, 1)
-  const monthEnd = new Date(2025, m, 0) // ultimo giorno mese
+  const monthEnd = new Date(2025, m, 0)
 
   const isActive =
     start <= monthEnd &&
@@ -388,9 +388,8 @@ function applyFilters(){
   monthly[m-1].ivato += ivato
   monthly[m-1].ass += ass
 }
-    }
-  })
 
+})
   updateKPI()
   renderChart()
 }
